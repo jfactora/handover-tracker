@@ -66,6 +66,20 @@
   .empty-state h3 { font-size: 16px; font-weight: 600; color: #ccc; margin-bottom: 6px; }
   .empty-state p { font-size: 13px; }
   .footer { font-size: 11px; color: #ccc; text-align: center; padding: 24px; }
+  .view-toggle { display: flex; gap: 4px; background: #f0f0f0; padding: 3px; border-radius: 8px; }
+  .view-btn { font-size: 12px; padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 500; background: transparent; color: #888; transition: all 0.15s; }
+  .view-btn.active { background: #fff; color: #111; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .tbl-wrap { background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
+  .tbl-scroll { overflow-x: auto; }
+  .tbl-wrap table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  .tbl-wrap thead th { font-size: 10px; font-weight: 700; color: #888; text-align: left; padding: 10px 14px; border-bottom: 1px solid #eee; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; background: #fafafa; cursor: pointer; user-select: none; }
+  .tbl-wrap thead th:hover { background: #f0f0f0; }
+  .tbl-wrap tbody tr { border-bottom: 1px solid #f5f5f5; }
+  .tbl-wrap tbody tr:hover { background: #fafafa; }
+  .tbl-wrap tbody td { padding: 10px 14px; font-size: 12px; color: #333; vertical-align: middle; }
+  .adopt-yes { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #e8f5e9; color: #2e7d32; white-space: nowrap; }
+  .adopt-no  { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fce8e8; color: #b71c1c; white-space: nowrap; }
+  .adopt-other { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fff3e0; color: #e65100; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -120,9 +134,30 @@
         <option value="No">Not in meeting</option>
       </select>
       <button class="btn-switch" id="btn-clear-filters" style="display:none" onclick="clearFilters()">&#215; Clear</button>
+      <div style="margin-left:auto" class="view-toggle"><button class="view-btn active" id="btn-cards" onclick="setView('cards')">&#9646;&#9646; Cards</button><button class="view-btn" id="btn-table" onclick="setView('table')">&#9776; Table</button></div>
     </div>
 
     <div class="cards-grid" id="cards-grid"></div>
+    <div class="tbl-wrap" id="table-view" style="display:none">
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr>
+            <th>Project Name</th>
+            <th>Handover Date / Time</th>
+            <th>Adoption</th>
+            <th>HC</th>
+            <th>MRR</th>
+            <th>Package</th>
+            <th>Milestone</th>
+            <th>Products Availed</th>
+            <th>Background / Roadblock</th>
+            <th>PM</th>
+            <th>In Meeting?</th>
+          </tr></thead>
+          <tbody id="table-tbody"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="empty-state" id="empty-state" style="display:none">
       <div class="empty-icon">&#128269;</div>
       <h3>No accounts found</h3>
@@ -180,6 +215,52 @@ function hasActiveFilters() {
   return document.getElementById("f-search").value ||
     document.getElementById("f-month").value ||
     document.getElementById("f-meeting").value;
+}
+
+function setView(v) {
+  var cardsEl = document.getElementById('cards-grid');
+  var tableEl = document.getElementById('table-view');
+  var btnCards = document.getElementById('btn-cards');
+  var btnTable = document.getElementById('btn-table');
+  if (v === 'cards') {
+    cardsEl.style.display = 'grid';
+    tableEl.style.display = 'none';
+    btnCards.classList.add('active');
+    btnTable.classList.remove('active');
+  } else {
+    cardsEl.style.display = 'none';
+    tableEl.style.display = 'block';
+    btnCards.classList.remove('active');
+    btnTable.classList.add('active');
+  }
+  window._currentView = v;
+}
+
+function renderTable(filtered) {
+  var tbody = document.getElementById('table-tbody');
+  if (!tbody) return;
+  var html = '';
+  filtered.forEach(function(row) {
+    var adopt = row['Adoption'] || '';
+    var adoptClass = adopt.toLowerCase()==='yes' ? 'adopt-yes' : adopt.toLowerCase()==='no' ? 'adopt-no' : adopt ? 'adopt-other' : '';
+    var adoptHtml = adopt ? '<span class="'+adoptClass+'">'+esc(adopt)+'</span>' : '&mdash;';
+    var inMeet = row['Included in Handover Meetings'] || '';
+    var meetHtml = inMeet ? '<span class="meet-badge '+meetClass(inMeet)+'">'+esc(inMeet)+'</span>' : '&mdash;';
+    html += '<tr>';
+    html += '<td><strong>'+esc(row['Project Name'])+'</strong><br><span style="font-size:10px;color:#bbb">'+esc(row['_tab'])+'</span></td>';
+    html += '<td style="white-space:nowrap">'+esc(row['Handover Date / Time']||'&mdash;')+'</td>';
+    html += '<td>'+adoptHtml+'</td>';
+    html += '<td>'+esc(row['HC']||'&mdash;')+'</td>';
+    html += '<td style="white-space:nowrap">'+esc(row['MRR']||'&mdash;')+'</td>';
+    html += '<td>'+esc(row['Implem Package']||'&mdash;')+'</td>';
+    html += '<td>'+esc(row['Project Milestone']||'&mdash;')+'</td>';
+    html += '<td style="max-width:200px">'+esc(row['Products Availed']||'&mdash;')+'</td>';
+    html += '<td style="max-width:220px">'+esc(row['Company Background / Roadblock']||'&mdash;')+'</td>';
+    html += '<td>'+esc(row['Project Manager']||'&mdash;')+'</td>';
+    html += '<td>'+meetHtml+'</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 function clearFilters() {
@@ -273,6 +354,7 @@ function renderCards() {
   });
 
   grid.innerHTML = html;
+  renderTable(filtered);
 }
 
 function enterDashboard() {
