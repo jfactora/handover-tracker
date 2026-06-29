@@ -447,6 +447,8 @@ function switchUser() {
   document.getElementById("landing").style.display = "flex";
 }
 
+var _signedInEmail = '';
+
 function handleGoogleSignIn(response) {
   // Decode JWT token
   var parts = response.credential.split('.');
@@ -461,7 +463,8 @@ function handleGoogleSignIn(response) {
     return;
   }
 
-  // Show CSM selector
+  // Store email globally and show CSM selector
+  _signedInEmail = email;
   document.getElementById('after-signin').style.display = 'block';
   document.getElementById('google-signin-btn').style.display = 'none';
   document.getElementById('signed-in-as').textContent = 'Signed in as ' + email;
@@ -490,7 +493,8 @@ function handleGoogleSignIn(response) {
     'rgeronimo@sprout.ph':  'Ryan Geronimo',
     'mbhow@sprout.ph':      'Martin How',
     'mestacio@sprout.ph':   'Rexelle Estacio',
-    'aramos@sprout.ph':     'Sarah Ramos'
+    'aramos@sprout.ph':     'Sarah Ramos',
+    'jfactora@sprout.ph':    '__MANAGER__'
   };
   var matchedCSM = emailToCSM[email] || null;
   if (!matchedCSM) {
@@ -501,7 +505,7 @@ function handleGoogleSignIn(response) {
       }
     }
   }
-  if (matchedCSM) {
+  if (matchedCSM && matchedCSM !== '__MANAGER__') {
     sel.value = matchedCSM;
     document.getElementById('btn-enter').disabled = false;
   }
@@ -511,7 +515,7 @@ function handleGoogleSignIn(response) {
 var mgrCurrentCSM = null;
 
 function enterManagerView() {
-  var email = document.getElementById('signed-in-as').textContent.replace('Signed in as ','');
+  var email = _signedInEmail;
   var info = TEAM_MAP[email] || {};
   var name = info.name || email.split('@')[0];
   document.getElementById('mgr-avatar').textContent = name.slice(0,2).toUpperCase();
@@ -606,10 +610,7 @@ function showMgrSummary() {
 }
 
 function initLanding() {
-  var csms = Array.from(new Set(DATA.map(function(r){return r["Assigned CSM"]||"";}).filter(Boolean))).sort();
-  var sel = document.getElementById("csm-select");
-  csms.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.text=c; sel.add(o); });
-  sel.addEventListener("change", function(){ document.getElementById("btn-enter").disabled = !sel.value; });
+
 
   // Initialize Google Sign-In button after GSI loads
   function initGoogleSignIn() {
