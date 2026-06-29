@@ -81,7 +81,7 @@
   .adopt-no  { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fce8e8; color: #b71c1c; white-space: nowrap; }
   .adopt-other { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fff3e0; color: #e65100; white-space: nowrap; }
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body>
 
@@ -423,16 +423,23 @@ function initLanding() {
   csms.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.text=c; sel.add(o); });
   sel.addEventListener("change", function(){ document.getElementById("btn-enter").disabled = !sel.value; });
 
-  // Initialize Google Sign-In button
-  google.accounts.id.initialize({
-    client_id: "618211975753-480lipuhcvhrd4mufk23hhdopcmg1fpi.apps.googleusercontent.com",
-    callback: handleGoogleSignIn,
-    hosted_domain: 'sprout.ph'
-  });
-  google.accounts.id.renderButton(
-    document.getElementById('google-signin-btn'),
-    { theme: 'outline', size: 'large', text: 'signin_with', width: 340 }
-  );
+  // Initialize Google Sign-In button after GSI loads
+  function initGoogleSignIn() {
+    if (typeof google === 'undefined') {
+      setTimeout(initGoogleSignIn, 100);
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: "618211975753-480lipuhcvhrd4mufk23hhdopcmg1fpi.apps.googleusercontent.com",
+      callback: handleGoogleSignIn,
+      hosted_domain: 'sprout.ph'
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'outline', size: 'large', text: 'signin_with', width: 340 }
+    );
+  }
+  initGoogleSignIn();
 
   ["f-search","f-month","f-meeting"].forEach(function(id){
     var el = document.getElementById(id);
