@@ -81,6 +81,7 @@
   .adopt-no  { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fce8e8; color: #b71c1c; white-space: nowrap; }
   .adopt-other { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fff3e0; color: #e65100; white-space: nowrap; }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -380,11 +381,58 @@ function switchUser() {
   document.getElementById("landing").style.display = "flex";
 }
 
+function handleGoogleSignIn(response) {
+  // Decode JWT token
+  var parts = response.credential.split('.');
+  var payload = JSON.parse(atob(parts[1]));
+  var email = payload.email;
+  var name = payload.name;
+  var domain = email.split('@')[1];
+
+  // Only allow sprout.ph emails
+  if (domain !== 'sprout.ph') {
+    alert('Access restricted to Sprout Solutions (@sprout.ph) accounts only.');
+    return;
+  }
+
+  // Show CSM selector
+  document.getElementById('after-signin').style.display = 'block';
+  document.getElementById('google-signin-btn').style.display = 'none';
+  document.getElementById('signed-in-as').textContent = 'Signed in as ' + email;
+
+  // Try to auto-match CSM name from Google name
+  var csms = Array.from(new Set(DATA.map(function(r){return r['Assigned CSM']||'';}).filter(Boolean))).sort();
+  var sel = document.getElementById('csm-select');
+  csms.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.text=c; sel.add(o); });
+
+  // Try to auto-select based on first name match
+  var firstName = name.split(' ')[0].toLowerCase();
+  for (var i=0; i<sel.options.length; i++) {
+    if (sel.options[i].text.toLowerCase().indexOf(firstName) >= 0) {
+      sel.value = sel.options[i].value;
+      document.getElementById('btn-enter').disabled = false;
+      break;
+    }
+  }
+  sel.addEventListener('change', function(){ document.getElementById('btn-enter').disabled = !sel.value; });
+}
+
 function initLanding() {
   var csms = Array.from(new Set(DATA.map(function(r){return r["Assigned CSM"]||"";}).filter(Boolean))).sort();
   var sel = document.getElementById("csm-select");
   csms.forEach(function(c){ var o=document.createElement("option"); o.value=c; o.text=c; sel.add(o); });
   sel.addEventListener("change", function(){ document.getElementById("btn-enter").disabled = !sel.value; });
+
+  // Initialize Google Sign-In button
+  google.accounts.id.initialize({
+    client_id: "618211975753-480lipuhcvhrd4mufk23hhdopcmg1fpi.apps.googleusercontent.com",
+    callback: handleGoogleSignIn,
+    hosted_domain: 'sprout.ph'
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme: 'outline', size: 'large', text: 'signin_with', width: 340 }
+  );
 
   ["f-search","f-month","f-meeting"].forEach(function(id){
     var el = document.getElementById(id);
@@ -399,4 +447,3 @@ window.addEventListener("DOMContentLoaded", function(){ initLanding(); });
 </script>
 </body>
 </html>
-
