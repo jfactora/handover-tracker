@@ -447,6 +447,9 @@ function switchUser() {
   document.getElementById("landing").style.display = "flex";
 }
 
+var TEAM_MAP = {"jfactora@sprout.ph": {"role": "manager", "name": "Jill Factora", "team": null}, "adihiansan@sprout.ph": {"role": "lead", "name": "Anthony Dihiansan", "team": ["Kate Potian", "France Paredes", "Mark Ian Balibagoso", "Anna De Los Santos", "Emy Figueroa"]}, "msaavedra@sprout.ph": {"role": "lead", "name": "Maan Saavedra", "team": ["Jerry San Pedro", "Jerome Portera", "Ross Palileo", "Maan Saavedra"]}, "kmaano@sprout.ph": {"role": "lead", "name": "Krystel Maa\u00f1o", "team": ["Gabriel Cristobal", "Wil Luna", "Myka Batara", "Krystel Maa\u00f1o"]}, "cureta@sprout.ph": {"role": "manager", "name": "Manager (cureta)", "team": ["Lucky Penalosa", "Matthew Abellaneda", "Princess Manikan", "Ryan Geronimo"]}, "giasj@sprout.ph": {"role": "manager", "name": "Manager (giasj)", "team": ["Martin How", "Rexelle Estacio", "Sarah Ramos"]}, "emyf@sprout.ph": {"role": "csm", "name": "Emy Figueroa", "team": null}, "lpenalosa@sprout.ph": {"role": "csm", "name": "Lucky Penalosa", "team": null}, "mabellaneda@sprout.ph": {"role": "csm", "name": "Matthew Abellaneda", "team": null}, "pfmanikan@sprout.ph": {"role": "csm", "name": "Princess Manikan", "team": null}, "rgeronimo@sprout.ph": {"role": "csm", "name": "Ryan Geronimo", "team": null}, "mbhow@sprout.ph": {"role": "csm", "name": "Martin How", "team": null}, "mestacio@sprout.ph": {"role": "csm", "name": "Rexelle Estacio", "team": null}, "aramos@sprout.ph": {"role": "csm", "name": "Sarah Ramos", "team": null}};
+var LEADS = ['jfactora@sprout.ph', 'adihiansan@sprout.ph', 'msaavedra@sprout.ph', 'kmaano@sprout.ph', 'cureta@sprout.ph', 'giasj@sprout.ph'];
+
 var _signedInEmail = '';
 
 function handleGoogleSignIn(response) {
@@ -475,8 +478,7 @@ function handleGoogleSignIn(response) {
   csms.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.text=c; sel.add(o); });
 
   // Show manager button if lead/manager
-  var TEAM_MAP = {"jfactora@sprout.ph": {"role": "manager", "name": "Jill Factora", "team": null}, "adihiansan@sprout.ph": {"role": "lead", "name": "Anthony Dihiansan", "team": ["Kate Potian", "France Paredes", "Mark Ian Balibagoso", "Anna De Los Santos", "Emy Figueroa"]}, "msaavedra@sprout.ph": {"role": "lead", "name": "Maan Saavedra", "team": ["Jerry San Pedro", "Jerome Portera", "Ross Palileo", "Maan Saavedra"]}, "kmaano@sprout.ph": {"role": "lead", "name": "Krystel Maa\u00f1o", "team": ["Gabriel Cristobal", "Wil Luna", "Myka Batara", "Krystel Maa\u00f1o"]}, "cureta@sprout.ph": {"role": "manager", "name": "Manager (cureta)", "team": ["Lucky Penalosa", "Matthew Abellaneda", "Princess Manikan", "Ryan Geronimo"]}, "giasj@sprout.ph": {"role": "manager", "name": "Manager (giasj)", "team": ["Martin How", "Rexelle Estacio", "Sarah Ramos"]}, "emyf@sprout.ph": {"role": "csm", "name": "Emy Figueroa", "team": null}, "lpenalosa@sprout.ph": {"role": "csm", "name": "Lucky Penalosa", "team": null}, "mabellaneda@sprout.ph": {"role": "csm", "name": "Matthew Abellaneda", "team": null}, "pfmanikan@sprout.ph": {"role": "csm", "name": "Princess Manikan", "team": null}, "rgeronimo@sprout.ph": {"role": "csm", "name": "Ryan Geronimo", "team": null}, "mbhow@sprout.ph": {"role": "csm", "name": "Martin How", "team": null}, "mestacio@sprout.ph": {"role": "csm", "name": "Rexelle Estacio", "team": null}, "aramos@sprout.ph": {"role": "csm", "name": "Sarah Ramos", "team": null}};
-  var LEADS = ['jfactora@sprout.ph', 'adihiansan@sprout.ph', 'msaavedra@sprout.ph', 'kmaano@sprout.ph', 'cureta@sprout.ph', 'giasj@sprout.ph'];
+  // TEAM_MAP and LEADS defined globally above
   if (LEADS.indexOf(email) >= 0) {
     document.getElementById('btn-manager').style.display = 'block';
   }
