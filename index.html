@@ -89,9 +89,13 @@
   <div class="landing-card">
     <div class="landing-logo">&#128203;</div>
     <h1>My Handovers</h1>
-    <p>Select your name to see your assigned accounts and upcoming handover schedules.</p>
-    <select id="csm-select"><option value="">&#8212; Select your name &#8212;</option></select>
-    <button class="btn-primary" id="btn-enter" disabled onclick="enterDashboard()">View my handovers &rarr;</button>
+    <p>Sign in with your Sprout Google account to continue.</p>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;margin-bottom:14px;"></div>
+    <div id="after-signin" style="display:none;">
+      <select id="csm-select" style="width:100%;padding:12px 14px;font-size:14px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;color:#111;outline:none;font-family:inherit;margin-bottom:14px;appearance:none;"><option value="">&mdash; Select your name &mdash;</option></select>
+      <button class="btn-primary" id="btn-enter" disabled onclick="enterDashboard()">View my handovers &rarr;</button>
+      <p id="signed-in-as" style="font-size:12px;color:#888;margin-top:10px;"></p>
+    </div>
   </div>
 </div>
 
