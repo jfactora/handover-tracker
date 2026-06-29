@@ -78,6 +78,22 @@
   .mgr-chip-mrr { background:#e8f5e9; color:#2e7d32; }
   .mgr-chip-warn { background:#fce8e8; color:#b71c1c; }
   .mgr-back { font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid #e0e0e0; background:#fff; color:#666; cursor:pointer; font-family:inherit; }
+  .dash-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+  .dash-kpi { background:#fff; border-radius:10px; border:1px solid #eee; padding:16px 18px; }
+  .dash-kpi-label { font-size:11px; color:#999; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+  .dash-kpi-val { font-size:28px; font-weight:700; }
+  .dash-kpi-sub { font-size:11px; color:#bbb; margin-top:3px; }
+  .dash-charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .dash-chart-card { background:#fff; border-radius:10px; border:1px solid #eee; padding:18px; }
+  .dash-chart-title { font-size:13px; font-weight:700; margin-bottom:14px; color:#111; }
+  .dash-section-title { font-size:13px; font-weight:700; color:#111; margin-bottom:14px; }
+  .dash-alert-list { display:flex; flex-direction:column; gap:8px; }
+  .dash-alert-item { display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px 14px; font-size:12px; }
+  .dash-alert-name { font-weight:600; color:#111; }
+  .dash-alert-detail { color:#888; margin-top:2px; font-size:11px; }
+  .dash-badge-warn { font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px; background:#fce8e8; color:#b71c1c; white-space:nowrap; }
+  .dash-badge-ok { font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px; background:#e8f5e9; color:#2e7d32; white-space:nowrap; }
+  .dash-two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
   .view-toggle { display: flex; gap: 4px; background: #f0f0f0; padding: 3px; border-radius: 8px; }
   .view-btn { font-size: 12px; padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-weight: 500; background: transparent; color: #888; transition: all 0.15s; }
   .view-btn.active { background: #fff; color: #111; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -94,6 +110,7 @@
   .adopt-other { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: #fff3e0; color: #e65100; white-space: nowrap; }
 </style>
 <script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -212,6 +229,42 @@
           </select>
         </div>
       </div>
+
+      <!-- KPI Row -->
+      <div class="dash-kpi-grid" id="dash-kpis"></div>
+
+      <!-- Charts Row -->
+      <div class="dash-charts">
+        <div class="dash-chart-card">
+          <div class="dash-chart-title">MRR by CSM</div>
+          <canvas id="chart-mrr" height="220"></canvas>
+        </div>
+        <div class="dash-chart-card">
+          <div class="dash-chart-title">Adoption Rate by CSM</div>
+          <canvas id="chart-adoption" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Handover Timeline -->
+      <div class="dash-chart-card" style="margin-bottom:24px;">
+        <div class="dash-chart-title">Handover Volume by Month</div>
+        <canvas id="chart-timeline" height="100"></canvas>
+      </div>
+
+      <!-- Two-col: No date + Not in meeting -->
+      <div class="dash-two-col">
+        <div>
+          <div class="dash-section-title">&#9888; Accounts with no handover date</div>
+          <div class="dash-alert-list" id="dash-no-date"></div>
+        </div>
+        <div>
+          <div class="dash-section-title">&#128197; Not in handover meeting</div>
+          <div class="dash-alert-list" id="dash-no-meeting"></div>
+        </div>
+      </div>
+
+      <!-- CSM Cards -->
+      <div class="dash-section-title" style="margin-bottom:14px;">CSM Breakdown</div>
       <div class="mgr-stat-grid" id="mgr-stat-grid"></div>
     </div>
     <div id="mgr-csm-detail" style="display:none;">
@@ -544,12 +597,106 @@ function renderMgrSummary() {
   var team = getMgrTeam();
   var csms = Array.from(new Set(rows.map(function(r){return r['Assigned CSM']||'';}).filter(Boolean))).sort();
   if (team) csms = csms.filter(function(c){ return team.indexOf(c) >= 0; });
+
+  var allRows = team ? rows.filter(function(r){ return team.indexOf(r['Assigned CSM']||'') >= 0; }) : rows;
+
+  // --- KPIs ---
+  var totalAccounts = allRows.length;
+  var totalMRR = allRows.reduce(function(s,r){ var n=parseFloat(String(r['MRR']||'').replace(/[^0-9.]/g,'')); return s+(isNaN(n)?0:n); },0);
+  var adoptYes = allRows.filter(function(r){return (r['Adoption']||'').toLowerCase()==='yes';}).length;
+  var adoptRate = totalAccounts > 0 ? Math.round(adoptYes/totalAccounts*100) : 0;
+  var noDate = allRows.filter(function(r){return !(r['Handover Date / Time']||'').trim();}).length;
+
+  var kpiEl = document.getElementById('dash-kpis');
+  kpiEl.innerHTML = [
+    {label:'Total Accounts', val:totalAccounts, sub:'across your team', color:'#111'},
+    {label:'Total MRR', val:'&#8369;'+totalMRR.toLocaleString('en-PH',{maximumFractionDigits:0}), sub:'combined portfolio', color:'#2e7d32'},
+    {label:'Adoption Rate', val:adoptRate+'%', sub:adoptYes+' of '+totalAccounts+' tagged Yes', color:adoptRate>=50?'#2e7d32':'#b71c1c'},
+    {label:'No Date Set', val:noDate, sub:'accounts need scheduling', color:noDate>0?'#b71c1c':'#111'}
+  ].map(function(k){
+    return '<div class="dash-kpi"><div class="dash-kpi-label">'+k.label+'</div><div class="dash-kpi-val" style="color:'+k.color+'">'+k.val+'</div><div class="dash-kpi-sub">'+k.sub+'</div></div>';
+  }).join('');
+
+  // --- MRR by CSM chart ---
+  var mrrByCsm = csms.map(function(c){
+    var csmRows = allRows.filter(function(r){return r['Assigned CSM']===c;});
+    return csmRows.reduce(function(s,r){ var n=parseFloat(String(r['MRR']||'').replace(/[^0-9.]/g,'')); return s+(isNaN(n)?0:n); },0);
+  });
+  var ctx1 = document.getElementById('chart-mrr').getContext('2d');
+  if (window._chartMRR) window._chartMRR.destroy();
+  window._chartMRR = new Chart(ctx1, {
+    type:'bar',
+    data:{
+      labels: csms.map(function(c){return c.split(' ')[0];}),
+      datasets:[{label:'MRR',data:mrrByCsm,backgroundColor:'#c7f0a0',borderColor:'#5cb85c',borderWidth:1,borderRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return '₱'+Math.round(v/1000)+'k';}},grid:{color:'#f5f5f5'}},x:{grid:{display:false}}}}
+  });
+
+  // --- Adoption by CSM chart ---
+  var adoptByCsm = csms.map(function(c){
+    var csmRows = allRows.filter(function(r){return r['Assigned CSM']===c;});
+    var yes = csmRows.filter(function(r){return (r['Adoption']||'').toLowerCase()==='yes';}).length;
+    return csmRows.length > 0 ? Math.round(yes/csmRows.length*100) : 0;
+  });
+  var ctx2 = document.getElementById('chart-adoption').getContext('2d');
+  if (window._chartAdopt) window._chartAdopt.destroy();
+  window._chartAdopt = new Chart(ctx2, {
+    type:'bar',
+    data:{
+      labels: csms.map(function(c){return c.split(' ')[0];}),
+      datasets:[{label:'Adoption %',data:adoptByCsm,backgroundColor:adoptByCsm.map(function(v){return v>=50?'#c7f0a0':'#ffd0d0';}),borderColor:adoptByCsm.map(function(v){return v>=50?'#5cb85c':'#e53935';}),borderWidth:1,borderRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:function(v){return v+'%';}},grid:{color:'#f5f5f5'}},x:{grid:{display:false}}}}
+  });
+
+  // --- Timeline chart ---
+  var months = ['JAN 2026','FEB 2026','MAR 2026','APR 2026','MAY 2026','JUN 2026','JUL 2026'];
+  var countsByMonth = months.map(function(m){
+    return allRows.filter(function(r){return r._tab===m;}).length;
+  });
+  var ctx3 = document.getElementById('chart-timeline').getContext('2d');
+  if (window._chartTimeline) window._chartTimeline.destroy();
+  window._chartTimeline = new Chart(ctx3, {
+    type:'bar',
+    data:{
+      labels:months.map(function(m){return m.replace(' 2026','');}),
+      datasets:[{label:'Handovers',data:countsByMonth,backgroundColor:'#deeefb',borderColor:'#3949ab',borderWidth:1,borderRadius:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f5f5f5'}},x:{grid:{display:false}}}}
+  });
+
+  // --- No date list ---
+  var noDateRows = allRows.filter(function(r){return !(r['Handover Date / Time']||'').trim();});
+  var noDateEl = document.getElementById('dash-no-date');
+  if (noDateRows.length === 0) {
+    noDateEl.innerHTML = '<div style="font-size:12px;color:#aaa;padding:12px;">All accounts have a date set.</div>';
+  } else {
+    noDateEl.innerHTML = noDateRows.slice(0,8).map(function(r){
+      return '<div class="dash-alert-item"><div><div class="dash-alert-name">'+r['Project Name']+'</div><div class="dash-alert-detail">'+(r['Assigned CSM']||'Unassigned')+'</div></div><span class="dash-badge-warn">No date</span></div>';
+    }).join('') + (noDateRows.length>8?'<div style="font-size:11px;color:#aaa;padding:8px;">+' +(noDateRows.length-8)+' more</div>':'');
+  }
+
+  // --- Not in meeting list ---
+  var noMeetRows = allRows.filter(function(r){return (r['Included in Handover Meetings']||'').toLowerCase()==='no';});
+  var noMeetEl = document.getElementById('dash-no-meeting');
+  if (noMeetRows.length === 0) {
+    noMeetEl.innerHTML = '<div style="font-size:12px;color:#aaa;padding:12px;">All accounts are in handover meetings.</div>';
+  } else {
+    noMeetEl.innerHTML = noMeetRows.slice(0,8).map(function(r){
+      return '<div class="dash-alert-item"><div><div class="dash-alert-name">'+r['Project Name']+'</div><div class="dash-alert-detail">'+(r['Assigned CSM']||'Unassigned')+' &middot; '+(r['Handover Date / Time']||'No date')+'</div></div><span class="dash-badge-warn">Not in meeting</span></div>';
+    }).join('') + (noMeetRows.length>8?'<div style="font-size:11px;color:#aaa;padding:8px;">+' +(noMeetRows.length-8)+' more</div>':'');
+  }
+
+  // --- CSM cards ---
   var grid = document.getElementById('mgr-stat-grid');
   grid.innerHTML = '';
   csms.forEach(function(csm) {
-    var csmRows = rows.filter(function(r){return r['Assigned CSM']===csm;});
+    var csmRows = allRows.filter(function(r){return r['Assigned CSM']===csm;});
     var mrr = csmRows.reduce(function(s,r){ var n=parseFloat(String(r['MRR']||'').replace(/[^0-9.]/g,'')); return s+(isNaN(n)?0:n); },0);
     var noMeet = csmRows.filter(function(r){return (r['Included in Handover Meetings']||'').toLowerCase()==='no';}).length;
+    var adoptYesC = csmRows.filter(function(r){return (r['Adoption']||'').toLowerCase()==='yes';}).length;
+    var adoptPct = csmRows.length > 0 ? Math.round(adoptYesC/csmRows.length*100) : 0;
     var ini = csm.split(' ').map(function(n){return n.charAt(0)||'';}).join('').slice(0,2).toUpperCase();
     var card = document.createElement('div');
     card.className = 'mgr-stat-card';
@@ -557,11 +704,13 @@ function renderMgrSummary() {
     card.addEventListener('click', function(){ renderMgrDetail(this.getAttribute('data-csm')); });
     var mrrHtml = mrr>0 ? '<span class="mgr-chip mgr-chip-mrr">&#8369;'+mrr.toLocaleString('en-PH',{maximumFractionDigits:0})+'</span>' : '';
     var meetHtml = noMeet>0 ? '<span class="mgr-chip mgr-chip-warn">'+noMeet+' not in meeting</span>' : '';
+    var adoptHtml = '<span class="mgr-chip" style="background:'+(adoptPct>=50?'#e8f5e9':'#fce8e8')+';color:'+(adoptPct>=50?'#2e7d32':'#b71c1c')+';">'+adoptPct+'% adoption</span>';
     card.innerHTML = '<div class="mgr-csm-name"><div class="mgr-csm-avatar">'+ini+'</div>'+csm+'</div>'
       + '<div style="font-size:24px;font-weight:700;margin-bottom:6px;">'+csmRows.length+'<span style="font-size:12px;font-weight:400;color:#999;"> accounts</span></div>'
-      + '<div class="mgr-chips">'+mrrHtml+meetHtml+'</div>';
+      + '<div class="mgr-chips">'+mrrHtml+adoptHtml+meetHtml+'</div>';
     grid.appendChild(card);
   });
+
   document.getElementById('mgr-summary-view').style.display = 'block';
   document.getElementById('mgr-csm-detail').style.display = 'none';
 }
